@@ -1,0 +1,52 @@
+import os
+import json
+import csv
+
+# Define the base directory with the data
+base_dir = "/home/iv285/rds/rds-cam-clin-qmin-nCu8GHKxWRw/data/BIDS/CPFT_BIDS/derivatives/micapipe_v0.2.0"
+
+# Load the list of subjects from the text file
+with open("Alzheimers_QMIN_MC_WIBIC_NO_first_session.txt", "r") as file:
+    subject_list = [line.strip() for line in file]  # Read and strip newlines
+
+# Define the output directory and file
+output_dir = "/home/iv285/rds/rds-cam-clin-qmin-nCu8GHKxWRw/data/Iryna_analysis/Alzheimer_SUB_prep"
+output_file = os.path.join(output_dir, "ImageType_func.csv")
+
+# Ensure the output directory exists
+os.makedirs(output_dir, exist_ok=True)
+
+# Open the CSV file for appending
+with open(output_file, "a", newline="") as csvfile:
+    csvwriter = csv.writer(csvfile)
+    
+    # Iterate through all subject folders in the base directory
+    for subj_folder in os.listdir(base_dir):
+        if subj_folder.startswith("sub-") and subj_folder[4:] in subject_list:  # Check if folder matches a subject in the list
+            
+            # Go into "ses-*" subfolder
+            subj_path = os.path.join(base_dir, subj_folder)
+            for ses_folder in os.listdir(subj_path):
+                if ses_folder.startswith("ses"):
+                    
+                    # Look for "func" subfolder
+                    func_folder = os.path.join(subj_path, ses_folder, "func")
+                    if os.path.isdir(func_folder):
+                        
+                        # Iterate through JSON files in the "func" folder
+                        for json_file in os.listdir(func_folder):
+                            if json_file.endswith("bold.json"):
+                                with open(os.path.join(func_folder, json_file)) as f:
+                                    json_data = json.load(f)
+                                    series_description = json_data.get("SeriesDescription", "N/A")
+                                    image_type = json_data.get("ImageType", "N/A")
+                                    
+                                    # Write relevant details to the CSV file
+                                    csvwriter.writerow([
+                                        base_dir,  # Base directory for context
+                                        subj_folder, 
+                                        ses_folder, 
+                                        json_file, 
+                                        series_description, 
+                                        image_type
+                                    ])
